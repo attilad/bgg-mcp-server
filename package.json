@@ -1,0 +1,23 @@
+{
+  "name": "mcp-bgg-server",
+  "version": "1.0.0",
+  "description": "BoardGameGeek API integration for Model Context Protocol",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node ../../dist/esm/servers/bgg/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.9.0",
+    "axios": "^1.8.4",
+    "fast-xml-parser": "^5.2.0",
+    "better-sqlite3": "^9.5.1",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/better-sqlite3": "^7.6.9",
+    "typescript": "^5.8.3"
+  }
+}
