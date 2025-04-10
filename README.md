@@ -11,21 +11,61 @@ This server provides the following tools:
 3. **get-user-collection**: Get a user's board game collection with filtering options
 4. **get-hot-games**: Get the current hottest board games on BoardGameGeek
 5. **get-user-plays**: Get a user's recent board game plays
+6. **get-similar-games**: Get games similar to a specified game
+7. **sync-user-collection**: Synchronize a user's collection from BoardGameGeek
+8. **sync-user-plays**: Synchronize a user's plays from BoardGameGeek
+
+## Prerequisites
+
+- Node.js 22.5.0 or higher (required for experimental SQLite support)
+- npm (for dependency management)
 
 ## Building and Running
 
 ### To build the server:
 
 ```bash
-# From the root directory of the MCP SDK
+# Install dependencies
+npm install
+
+# Build the TypeScript code
 npm run build
 ```
 
 ### To run the server directly:
 
 ```bash
-node dist/esm/servers/bgg/index.js
+# The --experimental-sqlite flag is required
+node --experimental-sqlite build/index.js
 ```
+
+### To run with Docker:
+
+```bash
+# Build the Docker image
+docker build -t bgg-mcp-server .
+
+# Run the container
+docker run --rm -i bgg-mcp-server
+```
+
+## Testing
+
+To verify the server is working correctly:
+
+```bash
+# Make sure the server is built first
+npm run build
+
+# Run the test script
+node test-direct.js
+```
+
+The test script will:
+1. Start the MCP server
+2. Test the search-games functionality
+3. Test the get-hot-games functionality
+4. Display results and any errors
 
 ## Using with Claude for Desktop
 
@@ -33,20 +73,33 @@ node dist/esm/servers/bgg/index.js
    - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
    - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-2. Add the server configuration:
+2. Add the server configuration for direct Node.js execution:
 
 ```json
 {
   "mcpServers": {
     "boardgamegeek": {
       "command": "node",
-      "args": ["/path/to/bgg-mcp-server/build/index.js"]
+      "args": ["--experimental-sqlite", "/path/to/bgg-mcp-server/build/index.js"]
     }
   }
 }
 ```
 
-3. Restart Claude for Desktop
+3. Or use Docker (recommended):
+
+```json
+{
+  "mcpServers": {
+    "boardgamegeek": {
+      "command": "bash",
+      "args": ["-c", "cd /path/to/bgg-mcp-server && docker build -t bgg-mcp-server . && docker run --rm -i bgg-mcp-server"]
+    }
+  }
+}
+```
+
+4. Restart Claude for Desktop
 
 ## Example Questions
 
@@ -57,3 +110,15 @@ Once connected to Claude, you can ask questions like:
 - "Show me the details of Catan"
 - "What games are in user 'TomVasel's collection?"
 - "What games has user 'dice_tower' played recently?"
+- "Find games similar to Catan"
+- "Sync my collection from BGG username 'example'"
+
+## Data Storage
+
+The server uses SQLite for data persistence. All retrieved game data, user collections, and play history are stored in the `data/bgg.sqlite` database file. This:
+
+- Reduces API calls to BoardGameGeek
+- Improves response times for repeated queries
+- Maintains data between server restarts
+
+The database is automatically created if it doesn't exist and will be populated as you use the server.
