@@ -1,10 +1,14 @@
 # Dependencies
 node_modules/
+package-lock.json
+yarn.lock
+
+# Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
-yarn.lock
 
 # Build outputs
 dist/
@@ -15,6 +19,11 @@ lib/
 *.js.map
 *.d.ts
 !jest.config.js
+!patchlogs.js
+!test-mcp.js
+
+# Database
+data/*.sqlite
 
 # Environment variables
 .env
@@ -38,12 +47,8 @@ Thumbs.db
 # Coverage directory
 coverage/
 
-# Logs
-logs
-*.log
-
 # Runtime data
-pids
+pids/
 *.pid
 *.seed
 *.pid.lock
@@ -52,5 +57,3 @@ pids
 .npm
 .eslintcache
 .stylelintcache
-
-node_modules

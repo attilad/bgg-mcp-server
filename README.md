@@ -8,12 +8,23 @@ This server provides the following tools:
 
 1. **search-games**: Search for board games by name
 2. **get-game-details**: Get detailed information about a specific board game
-3. **get-user-collection**: Get a user's board game collection with filtering options
-4. **get-hot-games**: Get the current hottest board games on BoardGameGeek
-5. **get-user-plays**: Get a user's recent board game plays
-6. **get-similar-games**: Get games similar to a specified game
+3. **get-hot-games**: Get the current hottest board games on BoardGameGeek
+4. **get-user-collection**: Get a user's board game collection with filtering options
 7. **sync-user-collection**: Synchronize a user's collection from BoardGameGeek
+5. **get-user-plays**: Get a user's recent board game plays
 8. **sync-user-plays**: Synchronize a user's plays from BoardGameGeek
+6. **get-similar-games**: Get games similar to a specified game
+
+### Feature Checklist
+
+- [x] Search
+- [x] Get Game Details
+- [x] Hot Games
+- [ ] Get User Plays
+- [ ] Sync User Plays
+- [ ] Get User Collection
+- [ ] Sync User Collection
+- [ ] Get Similar Games
 
 ## Prerequisites
 
@@ -57,8 +68,8 @@ To verify the server is working correctly:
 # Make sure the server is built first
 npm run build
 
-# Run the test script
-node test-direct.js
+# Run the test script with the experimental SQLite flag
+node --experimental-sqlite test-mcp.js
 ```
 
 The test script will:
@@ -93,11 +104,13 @@ The test script will:
   "mcpServers": {
     "boardgamegeek": {
       "command": "bash",
-      "args": ["-c", "cd /path/to/bgg-mcp-server && docker build -t bgg-mcp-server . && docker run --rm -i bgg-mcp-server"]
+      "args": ["-c", "cd /path/to/bgg-mcp-server && docker build -t bgg-mcp-server . && docker run --rm -i -v \"$(pwd)/data:/app/data\" bgg-mcp-server"]
     }
   }
 }
 ```
+
+Note: the `-v "$(pwd)/data:/app/data"` option mounts the local `data` directory to the `/app/data` directory in the Docker container, ensuring that the SQLite database is persisted outside the container.
 
 4. Restart Claude for Desktop
 
@@ -105,13 +118,9 @@ The test script will:
 
 Once connected to Claude, you can ask questions like:
 
-- "Find board games similar to Pandemic"
-- "What are the top 10 hottest games on BoardGameGeek right now?"
-- "Show me the details of Catan"
-- "What games are in user 'TomVasel's collection?"
-- "What games has user 'dice_tower' played recently?"
-- "Find games similar to Catan"
-- "Sync my collection from BGG username 'example'"
+- "What are the new hot games on boardgamegeek"
+- "Look up the game Molly House on boardgamegeek"
+
 
 ## Data Storage
 
