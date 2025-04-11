@@ -6,69 +6,113 @@ export async function syncUserCollection(username: string): Promise<boolean> {
   try {
     console.log(`Syncing collection for user: ${username}`);
     
-    // Fetch collection from BGG API
-    const params = {
-      username,
-      stats: 1
-    };
+    // First sync boardgames (excluding expansions)
+    const boardgames = await syncCollectionType(username, 'boardgame', 'boardgameexpansion');
+    if (!boardgames) return false;
     
-    const data = await fetchBggXml("collection", params) as any;
+    // Then sync expansions
+    const expansions = await syncCollectionType(username, 'boardgameexpansion');
+    if (!expansions) return false;
     
-    // Check if we received a status code 202 (request queued)
-    if (data._termsofuse && !data.items) {
-      console.log(`Collection request for ${username} queued by BGG. Will retry later.`);
-      return false;
-    }
+    // Combine and save the results
+    const allItems = [...boardgames, ...expansions];
+    await db.saveUserCollection(username, allItems);
     
-    // Check if we have results
-    if (!data.items || !data.items.item || data.items.item.length === 0) {
-      console.log(`No games found in ${username}'s collection.`);
-      return true; // Successful sync, just empty
-    }
-    
-    // Process the results
-    const collectionItems = data.items.item.map((item: any) => {
-      const collectionItem: any = {
-        id: item._objectid,
-        name: item.name?._text || item.name || "Unknown",
-        yearPublished: item.yearpublished || "Unknown",
-        image: item.image || null,
-        status: {
-          own: item.status?._own === "1",
-          played: item.status?._played === "1",
-          rated: item.rating && item.rating > 0,
-          numPlays: item.numplays || 0,
-        },
-      };
-      
-      // Add statistics if available
-      if (item.stats) {
-        collectionItem.rating = item.stats.rating?._value || "Not Rated";
-        collectionItem.average = item.stats.rating?.average?._value || "Unknown";
-        collectionItem.bayesAverage = item.stats.rating?.bayesaverage?._value || "Unknown";
-      }
-      
-      return collectionItem;
-    });
-    
-    // Save collection to database
-    await db.saveUserCollection(username, collectionItems);
-    
-    // Sync game details for each game in the collection
-    for (const item of collectionItems) {
-      if (await db.gameNeedsRefresh(item.id)) {
-        await syncGameDetails(item.id);
-        // Add a small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
-    
-    console.log(`Successfully synced ${collectionItems.length} games for user ${username}`);
     return true;
   } catch (error) {
     console.error(`Error syncing collection for user ${username}:`, error);
     return false;
   }
+}
+
+// Helper function to sync a specific type of collection items
+async function syncCollectionType(username: string, subtype: string, excludesubtype?: string, maxRetries = 3): Promise<any[]> {
+  const params: any = {
+    username,
+    subtype,
+    stats: 1  // Get rating/ranking info
+  };
+  
+  if (excludesubtype) {
+    params.excludesubtype = excludesubtype;
+  }
+  
+  let retryCount = 0;
+  while (retryCount < maxRetries) {
+    try {
+      const data = await fetchBggXml("collection", params) as any;
+      
+      // Check if we received a status code 202 (request queued)
+      if (data._termsofuse && !data.items) {
+        console.log(`Collection request for ${username} queued by BGG. Retrying in 5 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        retryCount++;
+        continue;
+      }
+      
+      // Check if we have results
+      if (!data.items || !data.items.item || data.items.item.length === 0) {
+        console.log(`No ${subtype}s found in ${username}'s collection.`);
+        return [];
+      }
+      
+      // Process the results
+      return data.items.item.map((item: any) => {
+        const collectionItem: any = {
+          id: item._objectid,
+          name: item.name[0]?._value || "Unknown",
+          yearPublished: item.yearpublished?._value || null,
+          image: item.image?._value || null,
+          type: subtype,
+          status: {
+            own: item.status?._own === "1",
+            prevowned: item.status?._prevowned === "1",
+            fortrade: item.status?._fortrade === "1",
+            want: item.status?._want === "1",
+            wanttoplay: item.status?._wanttoplay === "1",
+            wanttobuy: item.status?._wanttobuy === "1",
+            wishlist: item.status?._wishlist === "1",
+            preordered: item.status?._preordered === "1",
+            played: item.status?._played === "1",
+            hasparts: item.status?._hasparts === "1",
+            wantparts: item.status?._wantparts === "1",
+            numPlays: parseInt(item.numplays?._value || "0", 10),
+          }
+        };
+        
+        // Add statistics if available
+        if (item.stats) {
+          collectionItem.rating = parseFloat(item.stats.rating?._value || "0") || null;
+          collectionItem.average = parseFloat(item.stats.rating?.average?._value || "0") || null;
+          collectionItem.bayesAverage = parseFloat(item.stats.rating?.bayesaverage?._value || "0") || null;
+          
+          // Add ranks if available
+          if (item.stats.rating?.ranks?.rank) {
+            collectionItem.ranks = item.stats.rating.ranks.rank.map((rank: any) => ({
+              type: rank._type,
+              id: rank._id,
+              name: rank._name,
+              value: rank._value === "Not Ranked" ? null : parseInt(rank._value, 10),
+              bayesAverage: parseFloat(rank._bayesaverage || "0") || null
+            }));
+          }
+        }
+        
+        return collectionItem;
+      });
+      
+    } catch (error) {
+      console.error(`Error in attempt ${retryCount + 1} for ${subtype}:`, error);
+      if (retryCount < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        retryCount++;
+        continue;
+      }
+      throw error;
+    }
+  }
+  
+  throw new Error(`Failed to sync ${subtype}s after ${maxRetries} attempts`);
 }
 
 // Sync game details

@@ -149,7 +149,11 @@ export function registerTools(server: McpServer) {
             content: [
               {
                 type: "text",
-                text: "Collection request has been queued by BoardGameGeek. Please try again in a few moments.",
+                text: JSON.stringify({
+                  status: "queued",
+                  message: "Collection request has been queued by BoardGameGeek. Please try again in a few moments.",
+                  collection: []
+                })
               },
             ],
           };
@@ -176,7 +180,10 @@ export function registerTools(server: McpServer) {
           content: [
             {
               type: "text",
-              text: JSON.stringify(collection, null, 2),
+              text: JSON.stringify({
+                status: "success",
+                collection
+              })
             },
           ],
         };
@@ -190,7 +197,11 @@ export function registerTools(server: McpServer) {
             content: [
               {
                 type: "text",
-                text: "Collection request has been queued by BoardGameGeek. Please try again in a few moments.",
+                text: JSON.stringify({
+                  status: "queued",
+                  message: "Collection request has been queued by BoardGameGeek. Please try again in a few moments.",
+                  collection: []
+                })
               },
             ],
           };
@@ -215,19 +226,26 @@ export function registerTools(server: McpServer) {
             content: [
               {
                 type: "text",
-                text: JSON.stringify(collection, null, 2),
+                text: JSON.stringify({
+                  status: "success",
+                  collection
+                })
               },
             ],
           };
         }
       }
       
-      // If still no results, return an appropriate message
+      // If still no results, return an empty collection
       return {
         content: [
           {
             type: "text",
-            text: `No games found in ${args.username}'s collection matching the specified filters.`,
+            text: JSON.stringify({
+              status: "success",
+              message: `No games found in ${args.username}'s collection matching the specified filters.`,
+              collection: []
+            })
           },
         ],
       };
@@ -237,7 +255,11 @@ export function registerTools(server: McpServer) {
         content: [
           {
             type: "text",
-            text: `Error retrieving user collection: ${error instanceof Error ? error.message : String(error)}`,
+            text: JSON.stringify({
+              status: "error",
+              message: `Error retrieving user collection: ${error instanceof Error ? error.message : String(error)}`,
+              collection: []
+            })
           },
         ],
       };
