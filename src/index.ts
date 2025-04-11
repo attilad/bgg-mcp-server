@@ -22,7 +22,7 @@ async function main() {
   try {
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error("BoardGameGeek MCP Server running on stdio with SQLite persistence enabled");
+    console.log("BoardGameGeek MCP Server running on stdio with SQLite persistence enabled");
   }
   catch (error) {
     console.error("Error starting server:", error);

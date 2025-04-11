@@ -239,17 +239,14 @@ export async function syncHotGames(): Promise<boolean> {
       return false;
     }
     
-    // Process the results - fix the name extraction
+    // Process the results
     const hotGames = data.items.item.map((item: any) => {
-      // Debug output to see actual structure
-      console.debug(`Hot game item: ${JSON.stringify(item.name)}`);
-      
       return {
         id: item._id,
         rank: item._rank,
-        name: item.name._value || item.name._text || item.name || "Unknown", // Fix: try multiple ways to get name
+        name: item.name[0]?._value || "Unknown",
         yearPublished: item.yearpublished?._value || item.yearpublished || null,
-        thumbnail: item.thumbnail || null,
+        thumbnail: item.thumbnail?._value || null,
       };
     });
     
